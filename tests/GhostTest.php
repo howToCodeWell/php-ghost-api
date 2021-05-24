@@ -3,30 +3,32 @@
 namespace M1guelpf\GhostAPI\Test;
 
 use GuzzleHttp\Client;
+use M1guelpf\GhostAPI\Ghost;
+use PHPUnit\Framework\TestCase;
 
-class GhostTest extends \PHPUnit\Framework\TestCase
+class GhostTest extends TestCase
 {
-    /** @var \M1guelpf\GhostAPI\Ghost */
-    protected $ghost;
+    /** @var Ghost */
+    protected Ghost $ghost;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $this->ghost = new Ghost();
+        $this->ghost = new Ghost('', null);
     }
 
     /** @test */
     public function it_does_not_have_token()
     {
-        $this->assertNull($this->ghost->apiToken);
+        $this->assertNull($this->ghost->getAPIToken());
     }
 
     /** @test */
     public function you_can_set_api_token()
     {
         $this->ghost->connect('API_TOKEN');
-        $this->assertEquals('API_TOKEN', $this->ghost->apiToken);
+        $this->assertEquals('API_TOKEN', $this->ghost->getAPIToken());
     }
 
     /** @test */

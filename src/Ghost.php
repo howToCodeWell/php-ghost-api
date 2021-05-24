@@ -2,26 +2,30 @@
 
 namespace M1guelpf\GhostAPI;
 
+use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 
 class Ghost
 {
-    /** @var \GuzzleHttp\Client */
-    protected $client;
+    /** @var Client */
+    protected Client $client;
 
     /** @var string */
-    protected $host;
+    protected string $host;
+
+    /** @var null|string */
+    protected ?string $apiToken = null;
 
     /** @var string */
-    protected $apiToken;
+    protected string $baseUrl;
 
     /**
-     * @param \GuzzleHttp\Client $client
-     * @param string             $host
-     * @param string             $apiToken
-     * @param string             $apiVersion
+     * @param string $host
+     * @param null|string $apiToken
+     * @param string $apiVersion
      */
-    public function __construct($host, $apiToken = null, $apiVersion = 'v2')
+    public function __construct(string $host, ?string $apiToken, string $apiVersion = 'v2')
     {
         $this->client = new Client();
 
@@ -33,9 +37,9 @@ class Ghost
     /**
      * @param string $apiToken
      *
-     * @return string
+     * @return self
      */
-    public function connect($apiToken)
+    public function connect(string $apiToken): self
     {
         $this->apiToken = $apiToken;
 
@@ -43,17 +47,18 @@ class Ghost
     }
 
     /**
-     * @return \GuzzleHttp\Client
+     * @return Client
      */
-    public function getClient()
+    public function getClient(): Client
     {
         return $this->client;
     }
 
     /**
-     * @param \GuzzleHttp\Client $client
+     * @param Client $client
+     * @return Ghost
      */
-    public function setClient($client)
+    public function setClient(Client $client): self
     {
         if ($client instanceof Client) {
             $this->client = $client;
@@ -72,10 +77,43 @@ class Ghost
      * @param string $format
      *
      * @return array
+     * @throws Exception
      */
-    public function getPosts($include = '', $fields = '', $filter = '', $limit = '', $page = '', $order = '', $format = '')
+    public function getPosts(string $include = '', string $fields = '', string $filter = '', string $limit = '', string $page = '', string $order = '', string $format = '')
     {
         return $this->get('posts', compact('include', 'fields', 'filter', 'limit', 'page', 'order', 'format'));
+    }
+
+    /**
+     * @param string $resource
+     * @param array $query
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function get(string $resource, array $query = []): array
+    {
+        $apiToken = $this->getAPIToken();
+        if (empty($apiToken)) {
+            throw new Exception('Ghost API token must be set');
+        }
+        if (!empty($query)) {
+            $query = array_unique(array_merge(array_filter($query), ['key' => $apiToken]), SORT_REGULAR);
+        } else {
+            $query = ['key' => $apiToken];
+        }
+
+        $results = file_get_contents("{$this->baseUrl}/{$resource}?" . http_build_query($query));
+
+        return json_decode($results, true);
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getAPIToken(): ?string
+    {
+        return $this->apiToken;
     }
 
     /**
@@ -84,8 +122,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getPost(string $postId, $include = '', $fields = '')
+    public function getPost(string $postId, string $include = '', string $fields = ''): array
     {
         return $this->get("posts/$postId", compact('include', 'fields'));
     }
@@ -96,8 +135,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getPostBySlug(string $slug, $include = '', $fields = '')
+    public function getPostBySlug(string $slug, string $include = '', string $fields = ''): array
     {
         return $this->get("posts/slug/$slug", compact('include', 'fields'));
     }
@@ -111,8 +151,9 @@ class Ghost
      * @param string $order
      *
      * @return array
+     * @throws Exception
      */
-    public function getAuthors($include = '', $fields = '', $filter = '', $limit = '', $page = '', $order = '')
+    public function getAuthors(string $include = '', string $fields = '', string $filter = '', string $limit = '', string $page = '', string $order = ''): array
     {
         return $this->get('authors', compact('include', 'fields', 'filter', 'limit', 'page', 'order'));
     }
@@ -123,8 +164,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getAuthor(string $authorId, $include = '', $fields = '')
+    public function getAuthor(string $authorId, string $include = '', string $fields = ''): array
     {
         return $this->get("authors/$authorId", compact('include', 'fields'));
     }
@@ -135,8 +177,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getAuthorBySlug(string $slug, $include = '', $fields = '')
+    public function getAuthorBySlug(string $slug, string $include = '', string $fields = ''): array
     {
         return $this->get("authors/slug/$slug", compact('include', 'fields'));
     }
@@ -150,8 +193,9 @@ class Ghost
      * @param string $order
      *
      * @return array
+     * @throws Exception
      */
-    public function getTags($include = '', $fields = '', $filter = '', $limit = '', $page = '', $order = '')
+    public function getTags(string $include = '', string $fields = '', string $filter = '', string $limit = '', string $page = '', string $order = ''): array
     {
         return $this->get('tags', compact('include', 'fields', 'filter', 'limit', 'page', 'order'));
     }
@@ -162,8 +206,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getTag(string $tagsId, $include = '', $fields = '')
+    public function getTag(string $tagsId, string $include = '', string $fields = ''): array
     {
         return $this->get("tags/$tagsId", compact('include', 'fields'));
     }
@@ -174,8 +219,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getTagBySlug(string $slug, $include = '', $fields = '')
+    public function getTagBySlug(string $slug, string $include = '', string $fields = ''): array
     {
         return $this->get("tags/slug/$slug", compact('include', 'fields'));
     }
@@ -190,8 +236,9 @@ class Ghost
      * @param string $format
      *
      * @return array
+     * @throws Exception
      */
-    public function getPages($include = '', $fields = '', $filter = '', $limit = '', $page = '', $order = '', $format = '')
+    public function getPages(string $include = '', string $fields = '', string $filter = '', string $limit = '', string $page = '', string $order = '', string $format = ''): array
     {
         return $this->get('pages', compact('include', 'fields', 'filter', 'limit', 'page', 'order', 'format'));
     }
@@ -202,8 +249,9 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getPage(string $pageId, $include = '', $fields = '')
+    public function getPage(string $pageId, string $include = '', string $fields = ''): array
     {
         return $this->get("pages/$pageId", compact('include', 'fields'));
     }
@@ -214,101 +262,91 @@ class Ghost
      * @param string $fields
      *
      * @return array
+     * @throws Exception
      */
-    public function getPageBySlug(string $slug, $include = '', $fields = '')
+    public function getPageBySlug(string $slug, string $include = '', string $fields = ''): array
     {
         return $this->get("pages/slug/$slug", compact('include', 'fields'));
     }
 
     /**
      * @return array
+     * @throws Exception
      */
-    public function getSettings()
+    public function getSettings(): array
     {
         return $this->get('settings');
     }
 
     /**
      * @param string $resource
-     * @param array  $query
+     * @param array $rawData
+     * @return array
+     * @throws GuzzleException
+     */
+    public function post(string $resource, array $rawData = []): array
+    {
+        return $this->handleCall('POST', $resource, [], $rawData);
+    }
+
+    /**
+     * @param string $method HTTP method
+     * @param string $resource Resource to invoke at the HyperHost API
+     * @param array $query Request query string to pass in the URL
+     * @param array $rawData Request body
      *
      * @return array
+     * @throws GuzzleException
+     * @throws Exception
      */
-    public function get($resource, array $query = [])
+    protected function handleCall(string $method, string $resource, array $query, array $rawData): array
     {
-        if (! empty($query)) {
-            $query = array_unique(array_merge(array_filter($query), ['key' => $this->apiToken]), SORT_REGULAR);
-        } else {
-            $query = ['key' => $this->apiToken];
+        $apiToken = $this->getAPIToken();
+        if (empty($apiToken)) {
+            throw new Exception('Ghost API token must be set');
         }
 
-        $results = file_get_contents("{$this->baseUrl}/{$resource}?".http_build_query($query));
+        $data['headers'] = [
+            'User-Agent' => 'php-ghost-api',
+        ];
+
+        if (!empty($query)) {
+            $data['query'] = array_unique(array_merge($query, ['key' => $apiToken]), SORT_REGULAR);
+        } else {
+            $data['query'] = ['key' => $apiToken];
+        }
+
+        if (!empty($rawData)) {
+            $data['json'] = $rawData;
+        }
+
+        $results = $this->client
+            ->request($method, "{$this->baseUrl}/{$resource}", $data)
+            ->getBody()
+            ->getContents();
 
         return json_decode($results, true);
     }
 
     /**
      * @param string $resource
-     * @param array  $rawdata
-     *
+     * @param array $rawData
      * @return array
+     * @throws GuzzleException
      */
-    public function post($resource, array $rawData = [])
-    {
-        return $this->handleCall('POST', $resource, [], $rawData);
-    }
-
-    /**
-     * @param string $resource
-     * @param array  $rawdata
-     *
-     * @return array
-     */
-    public function put($resource, array $rawData = [])
+    public function put(string $resource, array $rawData = []): array
     {
         return $this->handleCall('PUT', $resource, [], $rawData);
     }
 
     /**
      * @param string $resource
-     * @param array  $rawdata
-     *
+     * @param array $rawData
      * @return array
+     * @throws GuzzleException
      */
-    public function delete($resource, array $rawData = [])
+    public function delete(string $resource, array $rawData = []): array
     {
         return $this->handleCall('DELETE', $resource, [], $rawData);
-    }
-
-    /**
-     * @param string $method   HTTP method
-     * @param string $resource Resource to invoke at the HyperHost API
-     * @param array  $query    Request query string to pass in the URL
-     * @param array  $rawData  Request body
-     *
-     * @return array
-     */
-    protected function handleCall($method, $resource, array $query, array $rawData)
-    {
-        $data['headers'] = [
-            'User-Agent' => 'php-ghost-api',
-        ];
-
-        if (! empty($query)) {
-            $data['query'] = array_unique(array_merge($query, ['key' => $this->apiToken]), SORT_REGULAR);
-        } else {
-            $data['query'] = ['key' => $this->apiToken];
-        }
-
-        if (! empty($rawData)) {
-            $data['json'] = $rawData;
-        }
-
-        $results = $this->client
-      ->request($method, "{$this->baseUrl}/{$resource}", $data)
-      ->getBody()
-      ->getContents();
-
-        return json_decode($results, true);
     }
 }
